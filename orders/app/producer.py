@@ -1,9 +1,10 @@
 import json
+import os
 import aio_pika
 from app.schemas import OrderCreate
 
 
-RABBITMQ_URL = "amqp://rmq_admin:rmq_password@localhost/"
+RABBITMQ_URL = os.getenv("RABBITMQ_URL")
 
 
 async def publish_order(order: OrderCreate):
