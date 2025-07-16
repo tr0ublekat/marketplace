@@ -1,0 +1,4 @@
+.env
+pg_data/
+.venv/
+__pycache__/

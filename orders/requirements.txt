@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+aio_pika
+pydantic
+sqlalchemy
+asyncpg
