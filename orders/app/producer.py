@@ -2,6 +2,7 @@ import json
 import os
 import aio_pika
 from app.schemas import OrderCreate
+from app.logger import logger
 
 
 RABBITMQ_URL = os.getenv("RABBITMQ_URL")
@@ -19,3 +20,5 @@ async def publish_order(order: dict):
         message = aio_pika.Message(body=message_body)
 
         await exchange.publish(message, routing_key="order.created")
+
+        logger.info(f"Публикация сообщения order.created: {order}")
