@@ -1,24 +1,57 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 
 	"github.com/streadway/amqp"
 )
 
 func failOnError(msg string, err error) {
 	if err != nil {
-		fmt.Printf("%s: %s\n", msg, err)
+		log.Panicf("%s: %s\n", msg, err)
 	}
 }
 
-func handleOrderCreated(body []byte) {
-	fmt.Printf("Заказ создан: %s\n", string(body))
+func publishCheckoutReady(ch *amqp.Channel, body []byte) {
+	err := ch.Publish(
+		"marketplace",
+		"checkout.ready",
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+
+	log.Printf("Публикация сообщения checkout.ready: %s\n", string(body))
+
+	failOnError("Ошибка публикации сообщения checkout.ready:", err)
+}
+
+func handleOrderCreated(ch *amqp.Channel, body []byte) {
+	type Order struct {
+		OrderID    int `json:"order_id"`
+		TotalPrice int `json:"total_price"`
+	}
+	var order Order
+	err := json.Unmarshal(body, &order)
+	failOnError("Ошибка декодирования JSON:", err)
+
+	checkoutReadyMsg, err := json.Marshal(order)
+	failOnError("Ошибка кодирования JSON:", err)
+
+	publishCheckoutReady(ch, checkoutReadyMsg)
 }
 
 func main() {
-	conn, err := amqp.Dial("amqp://rmq_admin:rmq_password@localhost/")
-	failOnError("Ошибка подключения к RabbitMQ:", err)
+	RABBITMQ_URL := os.Getenv("RABBITMQ_URL")
+
+	conn, err := amqp.Dial(RABBITMQ_URL)
+	failOnError(fmt.Sprintf("Ошибка подключения к RabbitMQ (%s):", RABBITMQ_URL), err)
 	defer conn.Close()
 
 	ch, err := conn.Channel()
@@ -74,14 +107,14 @@ func main() {
 	)
 	failOnError("Ошибка подписки на очередь:", err)
 
-	fmt.Println("go-esb успешно запущен.")
+	log.Printf("go-esb запущен.")
 
 	for msg := range msgs {
 		switch msg.RoutingKey {
 		case "order.created":
-			handleOrderCreated(msg.Body)
+			handleOrderCreated(ch, msg.Body)
 		default:
-			fmt.Printf("Неизвестное сообщение: %s\n", msg.RoutingKey)
+			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
 		}
 	}
 
