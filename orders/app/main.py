@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.producer import publish_order
+import random
 
 
 async def get_db():
@@ -51,9 +52,27 @@ async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(new_order)
 
-    await publish_order(order)
+    updated_items = []
+    total_price = 0
 
-    return new_order
+    for item in order.items:
+        unit_price = random.randint(100, 1500)
+        total = unit_price * item.quantity
+        total_price += total
+        updated_items.append(
+            {**item.model_dump(), "unit_price": unit_price, "total": total}
+        )
+
+    updated_order = {
+        "order_id": new_order.id,
+        "user_id": new_order.user_id,
+        "items": updated_items,
+        "total_price": total_price,
+    }
+
+    await publish_order(updated_order)
+
+    return updated_order
 
 
 @app.get("/orders")
