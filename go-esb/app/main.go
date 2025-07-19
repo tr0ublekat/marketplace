@@ -45,6 +45,7 @@ func handleOrderCreated(ch *amqp.Channel, body []byte) {
 	failOnError("Ошибка кодирования JSON:", err)
 
 	publishMessage(ch, "checkout.ready", checkoutReadyMsg)
+	sendNotification(ch, order.OrderID, "order", fmt.Sprintf("Заказ успешно создан с общей стоимостью %d", order.TotalPrice))
 }
 
 func handleDeliverySend(ch *amqp.Channel, order_id int) {
@@ -76,9 +77,43 @@ func handlePaymentCheck(ch *amqp.Channel, body []byte) {
 
 	if payment.IsSuccess {
 		handleDeliverySend(ch, payment.OrderID)
+		sendNotification(ch, payment.OrderID, "payment", fmt.Sprintf("Платеж успешно прошел на сумму %d", payment.TotalPrice))
 	} else {
 		handlePaymentDiscard(body)
+		sendNotification(ch, payment.OrderID, "payment", "Платеж не прошел")
 	}
+}
+
+func handleDeliveryGetStatus(ch *amqp.Channel, body []byte) {
+	type DeliveryStatus struct {
+		OrderID int    `json:"order_id"`
+		Status  string `json:"status"`
+	}
+
+	var deliveryStatus DeliveryStatus
+	err := json.Unmarshal(body, &deliveryStatus)
+	failOnError("Ошибка декодирования JSON:", err)
+
+	sendNotification(ch, deliveryStatus.OrderID, "delivery", fmt.Sprintf("Обновлен статус доставки: %s", deliveryStatus.Status))
+}
+
+func sendNotification(ch *amqp.Channel, orderID int, sub string, description string) {
+	type Notification struct {
+		OrderID     int    `json:"order_id"`
+		Sub         string `json:"sub"`
+		Description string `json:"description"`
+	}
+
+	notification := Notification{
+		OrderID:     orderID,
+		Sub:         sub,
+		Description: description,
+	}
+
+	notificationMsg, err := json.Marshal(notification)
+	failOnError("Ошибка кодирования JSON:", err)
+
+	publishMessage(ch, "notification.action", notificationMsg)
 }
 
 func main() {
@@ -150,7 +185,7 @@ func main() {
 		case "payment.action":
 			handlePaymentCheck(ch, msg.Body)
 		case "delivery.action":
-			// log.Printf("Получено сообщение с routing key delivery.action: %s\n", string(msg.Body))
+			handleDeliveryGetStatus(ch, msg.Body)
 		default:
 			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
 		}
