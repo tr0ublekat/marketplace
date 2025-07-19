@@ -15,10 +15,10 @@ func failOnError(msg string, err error) {
 	}
 }
 
-func publishCheckoutReady(ch *amqp.Channel, body []byte) {
+func publishMessage(ch *amqp.Channel, routingKey string, body []byte) {
 	err := ch.Publish(
 		"marketplace",
-		"checkout.ready",
+		routingKey,
 		false,
 		false,
 		amqp.Publishing{
@@ -27,9 +27,9 @@ func publishCheckoutReady(ch *amqp.Channel, body []byte) {
 		},
 	)
 
-	log.Printf("Публикация сообщения checkout.ready: %s\n", string(body))
+	failOnError(fmt.Sprintf("Ошибка публикации сообщения с routing key %s:", routingKey), err)
 
-	failOnError("Ошибка публикации сообщения checkout.ready:", err)
+	log.Printf("Публикация сообщения %s: %s\n", routingKey, string(body))
 }
 
 func handleOrderCreated(ch *amqp.Channel, body []byte) {
@@ -44,7 +44,41 @@ func handleOrderCreated(ch *amqp.Channel, body []byte) {
 	checkoutReadyMsg, err := json.Marshal(order)
 	failOnError("Ошибка кодирования JSON:", err)
 
-	publishCheckoutReady(ch, checkoutReadyMsg)
+	publishMessage(ch, "checkout.ready", checkoutReadyMsg)
+}
+
+func handleDeliverySend(ch *amqp.Channel, order_id int) {
+	type Delivery struct {
+		OrderID int `json:"order_id"`
+	}
+
+	delivery := Delivery{OrderID: order_id}
+	deliveryMsg, err := json.Marshal(delivery)
+	failOnError("Ошибка кодирования JSON:", err)
+
+	publishMessage(ch, "delivery.send", deliveryMsg)
+}
+
+func handlePaymentDiscard(body []byte) {
+	log.Printf("Платеж не прошел: %s\n", string(body))
+}
+
+func handlePaymentCheck(ch *amqp.Channel, body []byte) {
+	type Payment struct {
+		OrderID    int  `json:"order_id"`
+		TotalPrice int  `json:"total_price"`
+		IsSuccess  bool `json:"is_success"`
+	}
+
+	var payment Payment
+	err := json.Unmarshal(body, &payment)
+	failOnError("Ошибка декодирования JSON:", err)
+
+	if payment.IsSuccess {
+		handleDeliverySend(ch, payment.OrderID)
+	} else {
+		handlePaymentDiscard(body)
+	}
 }
 
 func main() {
@@ -81,7 +115,7 @@ func main() {
 
 	routingKeys := []string{
 		"order.created",
-		"payment.success",
+		"payment.action",
 		"delivery.sent",
 	}
 
@@ -113,6 +147,8 @@ func main() {
 		switch msg.RoutingKey {
 		case "order.created":
 			handleOrderCreated(ch, msg.Body)
+		case "payment.action":
+			handlePaymentCheck(ch, msg.Body)
 		default:
 			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
 		}
