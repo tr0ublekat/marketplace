@@ -116,7 +116,7 @@ func main() {
 	routingKeys := []string{
 		"order.created",
 		"payment.action",
-		"delivery.sent",
+		"delivery.action",
 	}
 
 	for key := range routingKeys {
@@ -149,6 +149,8 @@ func main() {
 			handleOrderCreated(ch, msg.Body)
 		case "payment.action":
 			handlePaymentCheck(ch, msg.Body)
+		case "delivery.action":
+			// log.Printf("Получено сообщение с routing key delivery.action: %s\n", string(msg.Body))
 		default:
 			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
 		}
