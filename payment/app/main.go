@@ -53,7 +53,6 @@ func handlePaymentAction(ch *amqp.Channel, body []byte) {
 	failOnError("Ошибка декодирования JSON:", err)
 
 	isSuccess := mockGetPaymentStatus()
-	log.Printf("Платеж для заказа %d на сумму %d: %t\n", inputAction.OrderID, inputAction.TotalPrice, isSuccess)
 
 	var outputAction PaymentActionOutput
 	outputAction.OrderID = inputAction.OrderID

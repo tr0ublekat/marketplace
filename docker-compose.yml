@@ -64,6 +64,15 @@ services:
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+    
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 
   grafana:
@@ -77,7 +86,8 @@ services:
     volumes:
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
     depends_on:
-      - loki
+      loki:
+        condition: service_healthy
 
 
   go-esb:
@@ -136,3 +146,4 @@ services:
 volumes:
   pg_data:
   rabbitmq_data:
+  loki_data:

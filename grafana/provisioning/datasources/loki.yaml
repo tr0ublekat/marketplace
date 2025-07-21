@@ -8,4 +8,4 @@ datasources:
     basicAuth: false # Для удобства демонстрации в Loki отключена авторизация, поэтому и тут она не зачем
     isDefault: true #
     version: 1 #
-    editable: false # Зпретим редактирование через интерфейс Grafana
+    editable: true

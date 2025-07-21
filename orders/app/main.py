@@ -54,8 +54,6 @@ async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(new_order)
 
-    logger.info(f"Создан новый заказ с id={new_order.id}")
-
     updated_items = []
     total_price = 0
 
