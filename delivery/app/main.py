@@ -17,11 +17,13 @@ async def publish_delivery_status(order_id: int, status: str):
     async with connection:
         channel = await connection.channel()
         exchange = await channel.declare_exchange(
-            "marketplace", aio_pika.ExchangeType.DIRECT
+            "marketplace", aio_pika.ExchangeType.DIRECT, durable=True
         )
         delivery_action = {"order_id": order_id, "status": status}
         message_body = bytes(json.dumps(delivery_action), encoding="utf-8")
-        message = aio_pika.Message(body=message_body)
+        message = aio_pika.Message(
+            body=message_body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+        )
 
         await exchange.publish(message, routing_key="delivery.action")
 
@@ -46,7 +48,7 @@ async def main():
     connection = await aio_pika.connect_robust(RABBITMQ_URL)
     channel = await connection.channel()
     exchange = await channel.declare_exchange(
-        "marketplace", aio_pika.ExchangeType.DIRECT
+        "marketplace", aio_pika.ExchangeType.DIRECT, durable=True
     )
 
     queue = await channel.declare_queue("delivery_send_queue", durable=True)

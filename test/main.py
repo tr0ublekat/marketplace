@@ -2,6 +2,8 @@ import aiohttp
 import asyncio
 import random
 
+request_count = 100
+
 headers = {
     "Content-Type": "application/json",
 }
@@ -18,7 +20,7 @@ async def main():
 
         global data
 
-        for i in range(1, 11):
+        for i in range(1, request_count+1):
 
             data["user_id"] = random.randint(1, 500)
             data["items"][0]["product_id"] = random.randint(1, 1000)
@@ -27,7 +29,7 @@ async def main():
             async with session.post(
                 "http://localhost:8001/orders", json=data, headers=headers
             ) as response:
-                print(i, "/10", end="\r")
+                print(i, f"/{request_count}", end="\r")
 
 
 asyncio.run(main())

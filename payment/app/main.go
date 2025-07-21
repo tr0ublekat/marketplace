@@ -80,7 +80,7 @@ func main() {
 	err = ch.ExchangeDeclare(
 		"marketplace", // name
 		"direct",      // type
-		false,         // durable
+		true,          // durable
 		false,         // auto-deleted
 		false,         // internal
 		false,         // no-wait

@@ -130,7 +130,7 @@ func main() {
 	err = ch.ExchangeDeclare(
 		"marketplace", // имя exchange
 		"direct",      // тип exchange
-		false,         // durable
+		true,          // durable
 		false,         // delete when unused
 		false,         // exclusive
 		false,         // no-wait

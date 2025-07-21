@@ -14,10 +14,12 @@ async def publish_order(order: dict):
     async with connection:
         channel = await connection.channel()
         exchange = await channel.declare_exchange(
-            "marketplace", aio_pika.ExchangeType.DIRECT
+            "marketplace", aio_pika.ExchangeType.DIRECT, durable=True
         )
         message_body = bytes(json.dumps(order), encoding="utf-8")
-        message = aio_pika.Message(body=message_body)
+        message = aio_pika.Message(
+            body=message_body, delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+        )
 
         await exchange.publish(message, routing_key="order.created")
 
