@@ -1,3 +1,18 @@
+x-def-logging: &default-logging
+  logging:
+    driver: "loki"
+    options:
+      # Адрес Loki, куда складывать логи
+      # Обратите внимание, что здесь используется не имя сервиса loki, а локальный хост, на который проброшен порт Loki,
+      # это сделано потому, что логи будет писать docker engine, котрый расположен на хостовой машине,
+      # и он не знает имени хоста контейнера Loki, которое ему присвоил compose во внутренней сети проекта.
+      loki-url: "http://localhost:3100/loki/api/v1/push"
+      loki-batch-size: "100"
+      loki-retries: 2
+      loki-max-backoff: 1000ms
+      loki-timeout: 1s
+
+
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -15,9 +30,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    
+
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+
+    <<: *default-logging
   
 
   postgres:
@@ -39,6 +56,29 @@ services:
       retries: 5
       start_period: 5s
     
+    <<: *default-logging
+    
+  
+  loki:
+    image: grafana/loki:2.9.0
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+
+  grafana:
+    image: grafana/grafana:10.3.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - loki
+
 
   go-esb:
     build: ./go-esb
@@ -48,6 +88,8 @@ services:
 
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+    
+    <<: *default-logging
   
 
   orders:
@@ -63,6 +105,8 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+    
+    <<: *default-logging
 
 
   payment:
@@ -73,6 +117,8 @@ services:
 
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+    
+    <<: *default-logging
   
 
   delivery:
@@ -83,6 +129,9 @@ services:
     
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+    
+    <<: *default-logging
+
 
 volumes:
   pg_data:
