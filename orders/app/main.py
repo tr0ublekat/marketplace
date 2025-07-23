@@ -37,9 +37,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/")
-async def read_root():
-    return {"Hello": "World"}
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 
 @app.post("/orders")
@@ -96,8 +96,12 @@ async def create_order(
 
 
 @app.get("/orders")
-async def get_orders(db: AsyncSession = Depends(get_db)):
+async def get_orders(
+    db: AsyncSession = Depends(get_db),
+    skip: int = 0,
+    limit: int = 10,
+):
     start = time.perf_counter()
-    orders = await db.execute(select(Order))
+    result = await db.execute(select(Order).offset(skip).limit(limit))
     logger.info(f"Получение заказов заняло {time.perf_counter() - start:.4f} сек")
-    return orders.scalars().all()
+    return result.scalars().all()
