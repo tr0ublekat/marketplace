@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.producer import publish_order
 from app.logger import logger
-
+from app.rabbit import RabbitMQConnection, rabbit_connection, get_rabbit
 import random
 
 
@@ -27,8 +27,10 @@ async def on_startup():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await on_startup()
+    await rabbit_connection.connect()
     yield
     print("Завершение БД...")
+    await rabbit_connection.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -40,7 +42,7 @@ async def read_root():
 
 
 @app.post("/orders")
-async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db)):
+async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db), rabbit_connection: RabbitMQConnection = Depends(get_rabbit)):
     new_order = Order(user_id=order.user_id)
     db.add(new_order)
     await db.flush()
@@ -72,7 +74,7 @@ async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db)):
         "total_price": total_price,
     }
 
-    await publish_order(updated_order)
+    await publish_order(updated_order, rabbit_connection)
 
     return updated_order
 
