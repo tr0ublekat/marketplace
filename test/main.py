@@ -10,8 +10,12 @@ headers = {
     "Content-Type": "application/json",
 }
 
+count = 0
+
 
 async def send_request(session, i):
+    global count
+
     data = {
         "user_id": random.randint(1, 500),
         "items": [
@@ -21,9 +25,8 @@ async def send_request(session, i):
     async with session.post(
         "http://localhost:8001/orders", json=data, headers=headers
     ) as response:
-        # Можно проверять response.status если нужно
-        # await response.text() если нужен ответ
-        # print(f"{i}/{request_count}", end="\r")
+        count += 1
+        print(f"{count}/{request_count}", end="\r")
         pass
 
 
