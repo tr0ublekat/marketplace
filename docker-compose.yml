@@ -19,21 +19,17 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
-    
     healthcheck:
       test: ["CMD", "rabbitmqctl", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
-
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-
     <<: *default-logging
   
 
@@ -48,14 +44,18 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
-    
+    command: >
+      postgres -c max_connections=200
+               -c shared_buffers=256MB
+               -c work_mem=8MB
+               -c wal_buffers=16MB
+               -c checkpoint_timeout=15min
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 5s
-    
     <<: *default-logging
     
   
@@ -67,7 +67,6 @@ services:
     volumes:
       - loki_data:/loki
       - ./loki-config.yaml:/etc/loki/local-config.yaml
-    
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
       interval: 10s
@@ -95,10 +94,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    
     <<: *default-logging
   
 
@@ -111,11 +108,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    
     <<: *default-logging
 
 
@@ -124,10 +119,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    
     <<: *default-logging
   
 
@@ -136,10 +129,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    
     <<: *default-logging
 
 
