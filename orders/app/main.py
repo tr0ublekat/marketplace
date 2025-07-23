@@ -1,13 +1,14 @@
-from fastapi import Depends, FastAPI
+import time
+from fastapi import Depends, FastAPI, Request
 from app.db import AsyncSessionLocal, engine
 from app.models import Base, Order, OrderItem
-from app.schemas import OrderCreate, ProductItem
+from app.schemas import OrderCreate
 from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import insert, select
 from app.producer import publish_order
-from app.logger import logger
 from app.rabbit import RabbitMQConnection, rabbit_connection, get_rabbit
+from app.logger import logger
 import random
 
 
@@ -42,19 +43,29 @@ async def read_root():
 
 
 @app.post("/orders")
-async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db), rabbit_connection: RabbitMQConnection = Depends(get_rabbit)):
+async def create_order(
+    order: OrderCreate,
+    db: AsyncSession = Depends(get_db),
+    rabbit_connection: RabbitMQConnection = Depends(get_rabbit),
+):
+    start = time.perf_counter()
+
     new_order = Order(user_id=order.user_id)
     db.add(new_order)
     await db.flush()
 
-    for item in order.items:
-        otder_item = OrderItem(
+    order_items = [
+        OrderItem(
             order_id=new_order.id, product_id=item.product_id, quantity=item.quantity
         )
-        db.add(otder_item)
-
+        for item in order.items
+    ]
+    db.add_all(order_items)
     await db.commit()
-    await db.refresh(new_order)
+
+    logger.info(f"Добавление в БД заняло {time.perf_counter() - start:.4f} сек")
+
+    start = time.perf_counter()
 
     updated_items = []
     total_price = 0
@@ -74,12 +85,19 @@ async def create_order(order: OrderCreate, db: AsyncSession = Depends(get_db), r
         "total_price": total_price,
     }
 
+    logger.info(f"Обновление заказа заняло {time.perf_counter() - start:.4f} сек")
+
+    start = time.perf_counter()
     await publish_order(updated_order, rabbit_connection)
+
+    logger.info(f"Публикация в RabbitMQ заняла {time.perf_counter() - start:.4f} сек")
 
     return updated_order
 
 
 @app.get("/orders")
 async def get_orders(db: AsyncSession = Depends(get_db)):
+    start = time.perf_counter()
     orders = await db.execute(select(Order))
+    logger.info(f"Получение заказов заняло {time.perf_counter() - start:.4f} сек")
     return orders.scalars().all()
