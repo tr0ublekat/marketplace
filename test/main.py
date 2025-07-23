@@ -23,7 +23,8 @@ async def send_request(session, i):
     ) as response:
         # Можно проверять response.status если нужно
         # await response.text() если нужен ответ
-        print(i, end="\r")
+        # print(f"{i}/{request_count}", end="\r")
+        pass
 
 
 async def bounded_send(semaphore, session, i):
