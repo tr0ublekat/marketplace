@@ -61,7 +61,7 @@ func handleDeliverySend(ch *amqp.Channel, order_id int) {
 }
 
 func handlePaymentDiscard(body []byte) {
-	log.Printf("Платеж не прошел: %s\n", string(body))
+	log.Panicf("Платеж не прошел: %s\n", string(body))
 }
 
 func handlePaymentCheck(ch *amqp.Channel, body []byte) {
@@ -179,16 +179,17 @@ func main() {
 	log.Printf("go-esb запущен.")
 
 	for msg := range msgs {
-		switch msg.RoutingKey {
-		case "order.created":
-			handleOrderCreated(ch, msg.Body)
-		case "payment.action":
-			handlePaymentCheck(ch, msg.Body)
-		case "delivery.action":
-			handleDeliveryGetStatus(ch, msg.Body)
-		default:
-			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
-		}
+		go func(msg amqp.Delivery) {
+			switch msg.RoutingKey {
+			case "order.created":
+				handleOrderCreated(ch, msg.Body)
+			case "payment.action":
+				handlePaymentCheck(ch, msg.Body)
+			case "delivery.action":
+				handleDeliveryGetStatus(ch, msg.Body)
+			default:
+				log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
+			}
+		}(msg)
 	}
-
 }
