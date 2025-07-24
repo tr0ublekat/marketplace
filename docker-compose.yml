@@ -148,6 +148,16 @@ services:
     <<: *default-logging
 
 
+  notifications:
+    build: ./notifications
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
+    <<: *default-logging
+
+
 volumes:
   pg_data:
   rabbitmq_data:

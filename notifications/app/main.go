@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/streadway/amqp"
 )
@@ -28,8 +29,14 @@ func handleNotificationsAction(body []byte) {
 	log.Printf("Получено уведомление для заказа %d: %s - %s\n", inputNotification.OrderID, inputNotification.Sub, inputNotification.Description)
 }
 
+func worker(tasks <-chan amqp.Delivery) {
+	for msg := range tasks {
+		handleNotificationsAction(msg.Body)
+	}
+}
+
 func main() {
-	RABBITMQ_URL := "amqp://rmq_admin:rmq_password@localhost:5672/"
+	RABBITMQ_URL := os.Getenv("RABBITMQ_URL")
 
 	conn, err := amqp.Dial(RABBITMQ_URL)
 	failOnError(fmt.Sprintf("Ошибка подключения к RabbitMQ (%s):", RABBITMQ_URL), err)
@@ -42,7 +49,7 @@ func main() {
 	err = ch.ExchangeDeclare(
 		"marketplace", // имя exchange
 		"direct",      // тип exchange
-		false,         // durable
+		true,          // durable
 		false,         // delete when unused
 		false,         // exclusive
 		false,         // no-wait
@@ -82,7 +89,15 @@ func main() {
 
 	log.Printf("notification-service запущен.")
 
+	workerCount := 10
+
+	tasks := make(chan amqp.Delivery, 100)
+
+	for i := 0; i < workerCount; i++ {
+		go worker(tasks)
+	}
+
 	for msg := range msgs {
-		handleNotificationsAction(msg.Body)
+		tasks <- msg
 	}
 }
