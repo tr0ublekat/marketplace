@@ -16,7 +16,7 @@ class RabbitMQConnection:
         self.exchange = None
 
     async def connect(self):
-        if not self.connection:
+        if not self.connection or self.connection.is_closed:
             self.connection = await aio_pika.connect_robust(RABBITMQ_URL)
             self.channel = await self.connection.channel()
             self.exchange = await self.channel.declare_exchange(

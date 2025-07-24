@@ -45,7 +45,7 @@ func handleOrderCreated(ch *amqp.Channel, body []byte) {
 	failOnError("Ошибка кодирования JSON:", err)
 
 	publishMessage(ch, "checkout.ready", checkoutReadyMsg)
-	sendNotification(ch, order.OrderID, "order", fmt.Sprintf("Заказ успешно создан с общей стоимостью %d", order.TotalPrice))
+	// sendNotification(ch, order.OrderID, "order", fmt.Sprintf("Заказ успешно создан с общей стоимостью %d", order.TotalPrice))
 }
 
 func handleDeliverySend(ch *amqp.Channel, order_id int) {
@@ -61,7 +61,7 @@ func handleDeliverySend(ch *amqp.Channel, order_id int) {
 }
 
 func handlePaymentDiscard(body []byte) {
-	log.Panicf("Платеж не прошел: %s\n", string(body))
+	log.Printf("Платеж не прошел: %s\n", string(body))
 }
 
 func handlePaymentCheck(ch *amqp.Channel, body []byte) {
@@ -77,10 +77,10 @@ func handlePaymentCheck(ch *amqp.Channel, body []byte) {
 
 	if payment.IsSuccess {
 		handleDeliverySend(ch, payment.OrderID)
-		sendNotification(ch, payment.OrderID, "payment", fmt.Sprintf("Платеж успешно прошел на сумму %d", payment.TotalPrice))
+		// sendNotification(ch, payment.OrderID, "payment", fmt.Sprintf("Платеж успешно прошел на сумму %d", payment.TotalPrice))
 	} else {
 		handlePaymentDiscard(body)
-		sendNotification(ch, payment.OrderID, "payment", "Платеж не прошел")
+		// sendNotification(ch, payment.OrderID, "payment", "Платеж не прошел")
 	}
 }
 
@@ -94,7 +94,7 @@ func handleDeliveryGetStatus(ch *amqp.Channel, body []byte) {
 	err := json.Unmarshal(body, &deliveryStatus)
 	failOnError("Ошибка декодирования JSON:", err)
 
-	sendNotification(ch, deliveryStatus.OrderID, "delivery", fmt.Sprintf("Обновлен статус доставки: %s", deliveryStatus.Status))
+	// sendNotification(ch, deliveryStatus.OrderID, "delivery", fmt.Sprintf("Обновлен статус доставки: %s", deliveryStatus.Status))
 }
 
 func sendNotification(ch *amqp.Channel, orderID int, sub string, description string) {
@@ -114,6 +114,21 @@ func sendNotification(ch *amqp.Channel, orderID int, sub string, description str
 	failOnError("Ошибка кодирования JSON:", err)
 
 	publishMessage(ch, "notification.action", notificationMsg)
+}
+
+func worker(ch *amqp.Channel, tasks <-chan amqp.Delivery) {
+	for msg := range tasks {
+		switch msg.RoutingKey {
+		case "order.created":
+			handleOrderCreated(ch, msg.Body)
+		case "payment.action":
+			handlePaymentCheck(ch, msg.Body)
+		case "delivery.action":
+			handleDeliveryGetStatus(ch, msg.Body)
+		default:
+			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
+		}
+	}
 }
 
 func main() {
@@ -178,16 +193,15 @@ func main() {
 
 	log.Printf("go-esb запущен.")
 
+	workerCount := 10
+
+	tasks := make(chan amqp.Delivery, 100)
+
+	for i := 0; i < workerCount; i++ {
+		go worker(ch, tasks)
+	}
+
 	for msg := range msgs {
-		switch msg.RoutingKey {
-		case "order.created":
-			handleOrderCreated(ch, msg.Body)
-		case "payment.action":
-			handlePaymentCheck(ch, msg.Body)
-		case "delivery.action":
-			handleDeliveryGetStatus(ch, msg.Body)
-		default:
-			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
-		}
+		tasks <- msg
 	}
 }
