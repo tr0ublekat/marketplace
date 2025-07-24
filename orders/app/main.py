@@ -22,7 +22,7 @@ async def on_startup():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
-        print(f"Ошибка при инициализации БД: {e}")
+        logger.fatal(f"Ошибка при инициализации БД: {e}")
 
 
 @asynccontextmanager
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     await on_startup()
     await rabbit_connection.connect()
     yield
-    print("Завершение БД...")
+    logger.info("Завершение RabbitMQ...")
     await rabbit_connection.close()
 
 
@@ -48,24 +48,34 @@ async def create_order(
     db: AsyncSession = Depends(get_db),
     rabbit_connection: RabbitMQConnection = Depends(get_rabbit),
 ):
-    start = time.perf_counter()
+    # start = time.perf_counter()
+    try:
 
-    new_order = Order(user_id=order.user_id)
-    db.add(new_order)
-    await db.flush()
+        if not order.items:
+            logger.error(f"Заказ пользователя №{order.user_id} не содержит товаров")
+            return {"error": "Заказ не может быть пустым"}
 
-    order_items = [
-        OrderItem(
-            order_id=new_order.id, product_id=item.product_id, quantity=item.quantity
-        )
-        for item in order.items
-    ]
-    db.add_all(order_items)
-    await db.commit()
+        new_order = Order(user_id=order.user_id)
+        db.add(new_order)
+        await db.flush()
 
-    logger.info(f"Добавление в БД заняло {time.perf_counter() - start:.4f} сек")
+        order_items = [
+            OrderItem(
+                order_id=new_order.id,
+                product_id=item.product_id,
+                quantity=item.quantity,
+            )
+            for item in order.items
+        ]
+        db.add_all(order_items)
+        await db.commit()
 
-    start = time.perf_counter()
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении заказа: {e}")
+
+    # logger.info(f"Добавление в БД заняло {time.perf_counter() - start:.4f} сек")
+
+    # start = time.perf_counter()
 
     updated_items = []
     total_price = 0
@@ -85,12 +95,17 @@ async def create_order(
         "total_price": total_price,
     }
 
-    logger.info(f"Обновление заказа заняло {time.perf_counter() - start:.4f} сек")
+    # logger.info(f"Обновление заказа заняло {time.perf_counter() - start:.4f} сек")
 
-    start = time.perf_counter()
-    await publish_order(updated_order, rabbit_connection)
+    # start = time.perf_counter()
 
-    logger.info(f"Публикация в RabbitMQ заняла {time.perf_counter() - start:.4f} сек")
+    try:
+        await publish_order(updated_order, rabbit_connection)
+        # logger.info(
+        #     f"Публикация в RabbitMQ заняла {time.perf_counter() - start:.4f} сек"
+        # )
+    except Exception as e:
+        logger.error(f"Ошибка при публикации в RabbitMQ: {e}")
 
     return updated_order
 
