@@ -179,17 +179,15 @@ func main() {
 	log.Printf("go-esb запущен.")
 
 	for msg := range msgs {
-		go func(msg amqp.Delivery) {
-			switch msg.RoutingKey {
-			case "order.created":
-				handleOrderCreated(ch, msg.Body)
-			case "payment.action":
-				handlePaymentCheck(ch, msg.Body)
-			case "delivery.action":
-				handleDeliveryGetStatus(ch, msg.Body)
-			default:
-				log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
-			}
-		}(msg)
+		switch msg.RoutingKey {
+		case "order.created":
+			handleOrderCreated(ch, msg.Body)
+		case "payment.action":
+			handlePaymentCheck(ch, msg.Body)
+		case "delivery.action":
+			handleDeliveryGetStatus(ch, msg.Body)
+		default:
+			log.Panicf("Неизвестный routing key: %s", msg.RoutingKey)
+		}
 	}
 }
