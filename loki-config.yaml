@@ -4,6 +4,21 @@ server:
   http_listen_port: 3100
   grpc_listen_port: 9096
 
+ingester:
+  wal:
+    enabled: true
+    dir: /loki/wal
+  chunk_idle_period: 3m
+  max_chunk_age: 1h
+  chunk_target_size: 1048576   # 1 MB
+  chunk_encoding: snappy
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    final_sleep: 0s
+
 common:
   path_prefix: /loki
   storage:
@@ -37,12 +52,14 @@ limits_config:
   enforce_metric_name: false
   reject_old_samples: true
   reject_old_samples_max_age: 168h
-  ingestion_rate_mb: 16
-  ingestion_burst_size_mb: 32
+  ingestion_rate_mb: 128
+  ingestion_burst_size_mb: 256
   split_queries_by_interval: 24h
+  max_entries_limit_per_query: 5000
+  max_streams_per_user: 1000000
 
 chunk_store_config:
-  max_look_back_period: 0s
+  max_look_back_period: 24h
 
 table_manager:
   retention_deletes_enabled: false

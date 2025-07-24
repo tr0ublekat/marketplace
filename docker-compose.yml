@@ -7,10 +7,12 @@ x-def-logging: &default-logging
       # это сделано потому, что логи будет писать docker engine, котрый расположен на хостовой машине,
       # и он не знает имени хоста контейнера Loki, которое ему присвоил compose во внутренней сети проекта.
       loki-url: "http://localhost:3100/loki/api/v1/push"
-      loki-batch-size: "100"
-      loki-retries: 2
-      loki-max-backoff: 1000ms
-      loki-timeout: 1s
+      loki-batch-size: "10000"
+      loki-batch-wait: "5s"
+      loki-retries: 3
+      loki-timeout: "30s"
+      mode: "non-blocking"
+      max-size: "10m"
 
 
 services:
@@ -23,7 +25,7 @@ services:
     depends_on:
       orders:
         condition: service_healthy
-    # <<: *default-logging
+    <<: *default-logging
 
 
   rabbitmq:
@@ -42,7 +44,7 @@ services:
       start_period: 5s
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    # <<: *default-logging
+    <<: *default-logging
   
 
   postgres:
@@ -64,7 +66,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    # <<: *default-logging
+    <<: *default-logging
     
   
   loki:
@@ -105,7 +107,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    # <<: *default-logging
+    <<: *default-logging
   
 
   orders:
@@ -125,7 +127,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    # <<: *default-logging
+    <<: *default-logging
 
 
   payment:
@@ -135,7 +137,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    # <<: *default-logging
+    <<: *default-logging
   
 
   delivery:
@@ -145,7 +147,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    # <<: *default-logging
+    <<: *default-logging
 
 
   notifications:
@@ -155,7 +157,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    # <<: *default-logging
+    <<: *default-logging
 
 
 volumes:
