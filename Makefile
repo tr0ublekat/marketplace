@@ -1,7 +1,7 @@
 .PHONY: test up down install restart
 
 up:
-	docker compose up --build -d --scale orders=3
+	docker compose up --build -d --scale orders=3 --scale delivery=3 --scale notifications=3
 
 down:
 	docker compose down
