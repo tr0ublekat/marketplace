@@ -3,7 +3,7 @@ import asyncio
 import random
 import time
 
-request_count = 1000
+request_count = 10000
 concurrency = 100  # сколько запросов одновременно
 
 headers = {
