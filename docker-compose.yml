@@ -23,7 +23,7 @@ services:
     depends_on:
       orders:
         condition: service_healthy
-    <<: *default-logging
+    # <<: *default-logging
 
 
   rabbitmq:
@@ -42,7 +42,7 @@ services:
       start_period: 5s
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-    <<: *default-logging
+    # <<: *default-logging
   
 
   postgres:
@@ -64,7 +64,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-    <<: *default-logging
+    # <<: *default-logging
     
   
   loki:
@@ -105,7 +105,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    <<: *default-logging
+    # <<: *default-logging
   
 
   orders:
@@ -125,7 +125,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    <<: *default-logging
+    # <<: *default-logging
 
 
   payment:
@@ -135,7 +135,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    <<: *default-logging
+    # <<: *default-logging
   
 
   delivery:
@@ -145,7 +145,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    <<: *default-logging
+    # <<: *default-logging
 
 
   notifications:
@@ -155,7 +155,7 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
-    <<: *default-logging
+    # <<: *default-logging
 
 
 volumes:
