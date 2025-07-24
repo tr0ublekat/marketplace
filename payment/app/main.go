@@ -65,6 +65,12 @@ func handlePaymentAction(ch *amqp.Channel, body []byte) {
 	publishPaymentAction(ch, actionMsg)
 }
 
+func worker(ch *amqp.Channel, tasks <-chan amqp.Delivery) {
+	for msg := range tasks {
+		handlePaymentAction(ch, msg.Body)
+	}
+}
+
 func main() {
 	RABBITMQ_URL := os.Getenv("RABBITMQ_URL")
 
@@ -106,8 +112,6 @@ func main() {
 	)
 	failOnError("Ошибка привязки очереди к exchange:", err)
 
-	log.Printf("payment-service запущен.")
-
 	msgs, err := ch.Consume(
 		q.Name, // queue name
 		"",     // consumer tag
@@ -119,7 +123,17 @@ func main() {
 	)
 	failOnError("Ошибка подписки на очередь:", err)
 
+	log.Printf("payment-service запущен.")
+
+	workerCount := 10
+
+	tasks := make(chan amqp.Delivery, 100)
+
+	for i := 0; i < workerCount; i++ {
+		go worker(ch, tasks)
+	}
+
 	for msg := range msgs {
-		handlePaymentAction(ch, msg.Body)
+		tasks <- msg
 	}
 }
