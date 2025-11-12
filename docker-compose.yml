@@ -101,7 +101,7 @@ services:
 
 
   go-esb:
-    build: ./go-esb
+    build: ./microservices/go-esb
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -111,7 +111,7 @@ services:
   
 
   orders:
-    build: ./orders
+    build: ./microservices/orders
     expose:
       - "8000"
     depends_on:
@@ -131,7 +131,7 @@ services:
 
 
   payment:
-    build: ./payment
+    build: ./microservices/payment
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -141,7 +141,7 @@ services:
   
 
   delivery:
-    build: ./delivery
+    build: ./microservices/delivery
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -151,7 +151,7 @@ services:
 
 
   notifications:
-    build: ./notifications
+    build: ./microservices/notifications
     depends_on:
       rabbitmq:
         condition: service_healthy
