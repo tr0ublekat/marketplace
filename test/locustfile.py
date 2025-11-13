@@ -1,4 +1,5 @@
 from locust import HttpUser, task
+import random
 
 
 class HelloWorldUser(HttpUser):
@@ -9,8 +10,8 @@ class HelloWorldUser(HttpUser):
             json={
                 "user_id": 50,
                 "items": [
-                    {"product_id": 111, "quantity": 1},
-                    {"product_id": 222, "quantity": 2},
+                    {"product_id": random.randint(1, 190), "quantity": 1},
+                    {"product_id": random.randint(1, 190), "quantity": 2},
                 ],
             },
             headers={"Content-Type": "application/json"},

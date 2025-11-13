@@ -19,7 +19,7 @@ async def send_request(session, i):
     data = {
         "user_id": random.randint(1, 500),
         "items": [
-            {"product_id": random.randint(1, 1000), "quantity": random.randint(1, 10)}
+            {"product_id": random.randint(1, 190), "quantity": random.randint(1, 5)}
         ],
     }
     async with session.post(
