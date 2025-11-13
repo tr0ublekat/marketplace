@@ -1,7 +1,7 @@
 .PHONY: test1 test2 up down install restart
 
 up:
-	docker compose up -d --scale orders=3 --scale delivery=2 --scale notifications=2 --scale go-esb=2
+	docker compose up -d --build --scale orders=3 --scale delivery=2 --scale notifications=2 --scale go-esb=2
 
 down:
 	docker compose down
