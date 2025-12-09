@@ -11,7 +11,7 @@ import (
 
 func failOnError(msg string, err error) {
 	if err != nil {
-		log.Panicf("%s: %s\n", msg, err)
+		log.Printf("Error: %s", err)
 	}
 }
 
@@ -132,6 +132,8 @@ func worker(ch *amqp.Channel, tasks <-chan amqp.Delivery) {
 }
 
 func main() {
+	log.Printf("Попытка запустить go-esb")
+
 	RABBITMQ_URL := os.Getenv("RABBITMQ_URL")
 
 	conn, err := amqp.Dial(RABBITMQ_URL)

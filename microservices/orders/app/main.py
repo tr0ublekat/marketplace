@@ -33,8 +33,11 @@ async def lifespan(app: FastAPI):
     await rabbit_connection.connect()
     await redis_cache.connect()
 
-    async with AsyncSessionLocal() as session:
-        await redis_cache.preload_all_prices(session)
+    try:
+        async with AsyncSessionLocal() as session:
+            await redis_cache.preload_all_prices(session)
+    except Exception as e:
+        logger.error(f"Ошибка при предзагрузке Redis: {e}")
 
     yield
 
@@ -46,21 +49,8 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/health", tags=["health"])
-async def health_check(db: AsyncSession = Depends(get_db)):
-    # Проверяем БД
-    await db.execute(text("SELECT 1"))
-
-    # Проверяем Redis
-    try:
-        if redis_cache.client:
-            await redis_cache.client.ping()
-            redis_status = "healthy"
-        else:
-            redis_status = "disconnected"
-    except Exception as e:
-        redis_status = f"error: {e}"
-
-    return {"status": "healthy", "database": "connected", "redis": redis_status}
+async def health_check():
+    return {"status": "ok"}
 
 
 @app.post("/orders", tags=["orders"])
@@ -124,7 +114,7 @@ async def create_order(
     order_response = {
         "order_id": new_order.id,
         "user_id": new_order.user_id,
-        "total_price": total_price,
+        "total_price": int(total_price),
         "status": "created",
     }
 

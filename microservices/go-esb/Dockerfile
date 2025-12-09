@@ -9,6 +9,3 @@ COPY . .
 RUN go build -o go-esb ./app
 
 CMD ["./go-esb"]
-
-
-
