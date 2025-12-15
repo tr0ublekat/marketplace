@@ -4,7 +4,7 @@ ms:
 	docker compose up -d --scale orders=3 --scale delivery=2 --scale notifications=2 --scale go-esb=2
 
 ml:
-	docker compose up -d monolith postgres
+	docker compose up -d --build monolith postgres
 	
 down:
 	docker compose down
