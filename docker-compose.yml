@@ -174,7 +174,18 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/
     <<: *default-logging
 
-
+  monolith:
+    build: ./monolith
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    ports:
+      - "9000:8000"
+    volumes:
+      - ./monolith:/app
+      
 volumes:
   pg_data:
   rabbitmq_data:

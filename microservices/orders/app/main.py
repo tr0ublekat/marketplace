@@ -65,11 +65,11 @@ async def create_order(
     if not order.items:
         return {"error": "Заказ не может быть пустым"}
 
-    # 1. Получаем ВСЕ цены из кэша (теперь они всегда там)
+    # 1. Получаем ВСЕ цены из кэша
     product_ids = [item.product_id for item in order.items]
     cached_prices = await redis_cache.get_product_prices_bulk(product_ids)
 
-    # 2. Проверяем что все товары найдены (должны быть, т.к. предзагружены)
+    # 2. Проверяем что все товары найдены
     missing_products = set(product_ids) - set(cached_prices.keys())
     if missing_products:
         logger.error(f"Товары не найдены в кэше: {missing_products}")
@@ -87,7 +87,7 @@ async def create_order(
             {**item.model_dump(), "unit_price": unit_price, "total": total}
         )
 
-    # 4. Создаем заказ в БД - УПРОЩЕННАЯ ВЕРСИЯ
+    # 4. Создаем заказ в БД
     try:
         new_order = Order(user_id=order.user_id)
         db.add(new_order)
@@ -110,7 +110,7 @@ async def create_order(
         logger.error(f"Ошибка при создании заказа в БД: {e}")
         return {"error": "Ошибка при создании заказа"}
 
-    # 5. Формируем ответ (упрощенный)
+    # 5. Формируем ответ
     order_response = {
         "order_id": new_order.id,
         "user_id": new_order.user_id,
