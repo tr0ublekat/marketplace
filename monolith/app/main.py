@@ -3,11 +3,10 @@ from contextlib import asynccontextmanager
 import app.handlers as handlers
 import app.schemas as schemas
 from app.db import create_tables, get_db
-from app.logger import logger
-from app.models import Order, OrderItem, Product
 from fastapi import Depends, FastAPI
-from sqlalchemy import select
 from sqlalchemy.orm import Session
+
+statuses = ["in_assembly", "on_the_way", "delivered"]
 
 
 @asynccontextmanager
@@ -31,5 +30,8 @@ async def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)
 
     if not updated_order["is_success"]:
         return {"error": "Ошибка при оплате заказа"}
+
+    for status in statuses:
+        updated_order = handlers.delivery_handler(updated_order, status, db)
 
     return updated_order

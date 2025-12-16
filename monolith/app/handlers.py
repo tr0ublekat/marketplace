@@ -1,3 +1,5 @@
+import random
+
 import app.schemas as schemas
 from app.db import get_db
 from app.logger import logger
@@ -5,7 +7,6 @@ from app.models import Order, OrderItem, Product
 from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-import random
 
 
 def create_order_handler(order: schemas.OrderCreate, db: Session = Depends(get_db)):
@@ -65,5 +66,12 @@ def payment_handler(updated_order: dict, db: Session = Depends(get_db)):
         logger.error(f"Ошибка при оплате заказа №{updated_order['order_id']}")
     else:
         logger.info(f"Заказ №{updated_order['order_id']} оплачен")
+
+    return updated_order
+
+
+def delivery_handler(updated_order: dict, status: str, db: Session = Depends(get_db)):
+    updated_order["status"] = status
+    logger.info(f"Заказ №{updated_order['order_id']} переходит в статус {status}")
 
     return updated_order
