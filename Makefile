@@ -1,4 +1,4 @@
-.PHONY: test1 test2 up down install restart
+.PHONY: test1 test2 up down install restart 
 
 ms:
 	docker compose up -d --scale orders=3 --scale delivery=2 --scale notifications=2 --scale go-esb=2
@@ -18,6 +18,13 @@ test1:
 
 test2:
 	cd test && .venv/bin/locust --headless -u 200 -r 200 --host http://localhost:8001
+
+test_ms:
+	cd test && .venv/bin/locust --headless -u 200 -r 200 --host http://localhost:8001
+
+test_ml:
+	cd test && .venv/bin/locust --headless -u 5 -r 5 --host http://localhost:9000
+
 
 restart:
 	$(MAKE) down
