@@ -23,7 +23,7 @@ async def send_request(session, i):
         ],
     }
     async with session.post(
-        "http://localhost:8001/orders", json=data, headers=headers
+        "http://localhost:9000/orders", json=data, headers=headers
     ) as response:
         count += 1
         print(f"{count}/{request_count}", end="\r")

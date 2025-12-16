@@ -5,6 +5,7 @@ import app.schemas as schemas
 from app.db import create_tables, get_db
 from fastapi import Depends, FastAPI
 from sqlalchemy.orm import Session
+from fastapi import BackgroundTasks
 
 statuses = ["in_assembly", "on_the_way", "delivered"]
 
@@ -24,7 +25,11 @@ async def health_check():
 
 
 @app.post("/orders", tags=["orders"])
-async def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
+async def create_order(
+    order: schemas.OrderCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     updated_order = handlers.create_order_handler(order, db)
     updated_order = handlers.payment_handler(updated_order, db)
 
@@ -32,6 +37,7 @@ async def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)
         return {"error": "Ошибка при оплате заказа"}
 
     for status in statuses:
-        updated_order = handlers.delivery_handler(updated_order, status, db)
+        # updated_order = handlers.delivery_handler(updated_order, status, db)
+        background_tasks.add_task(handlers.delivery_handler, updated_order, status, db)
 
     return updated_order
