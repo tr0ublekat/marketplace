@@ -19,7 +19,7 @@ class Product(Base):
 
 
 engine = create_async_engine(
-    str("postgresql+asyncpg://psql_user:psql_password@localhost:5432/go_esb"),
+    str("postgresql+asyncpg://pguser:pgpassword@localhost:5444/marketplace"),
     echo=False,
     pool_size=10,
     max_overflow=5,
@@ -40,17 +40,23 @@ async def get_db():
 
 # Пример получения товаров из DNS
 async def get_dns_products():
-    url = "https://dummyjson.com/products?limit=1000"
+    # url = "https://dummyjson.com/products?limit=1000"
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        "Accept": "application/json",
-    }
+    # headers = {
+    #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    #     "Accept": "application/json",
+    # }
 
-    response = requests.get(url, headers=headers)
+    # response = requests.get(url, headers=headers)
 
+    # print('Got data from dummyjson!')
+
+    import json
     products = {}
-    for product in response.json()["products"]:
+    with open('data.json') as f:
+        products_data = json.load(f)
+
+    for product in products_data["products"]:
         unit_price = random.randint(1000, 15000)
         name = product["title"]
 
