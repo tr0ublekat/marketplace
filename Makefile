@@ -1,13 +1,13 @@
 .PHONY: test1 test2 up down install restart 
 
 ms:
-	docker compose up -d --scale orders=3 --scale delivery=2 --scale notifications=2 --scale go-esb=2 
+	docker compose --profile ms up -d --scale orders=3 --scale delivery=2
 
 ml:
-	docker compose up -d --build monolith postgres
+	docker compose --profile ml up -d
 	
 down:
-	docker compose down
+	docker compose --profile * down
 
 install:
 	cd test && python3 -m venv .venv && .venv/bin/pip3 install -r requirements.txt
@@ -24,8 +24,3 @@ test_ms:
 
 test_ml:
 	cd test && .venv/bin/locust --headless -u 5 -r 5 --host http://localhost:9000
-
-
-restart:
-	$(MAKE) down
-	$(MAKE) up

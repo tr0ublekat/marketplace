@@ -3,8 +3,8 @@ import asyncio
 import random
 import time
 
-request_count = 10000
-concurrency = 100  # сколько запросов одновременно
+request_count = 200
+concurrency = 5  # сколько запросов одновременно
 
 headers = {
     "Content-Type": "application/json",
