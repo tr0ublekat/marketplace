@@ -4,3 +4,6 @@ __pycache__/
 
 # pycharm
 .idea/
+
+# for no reason
+.claude/
