@@ -2,10 +2,12 @@ import json
 import os
 import random
 import asyncio
-import requests
-from sqlalchemy import Column, ForeignKey, Integer, String, select
+from dotenv import load_dotenv
+from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base
+
+load_dotenv(dotenv_path="../.env")
 
 Base = declarative_base()
 
@@ -18,8 +20,13 @@ class Product(Base):
     price = Column(Integer)
 
 
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+DATABASE_URL = f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:5444/{POSTGRES_DB}"
+
 engine = create_async_engine(
-    str("postgresql+asyncpg://pguser:pgpassword@localhost:5444/marketplace"),
+    DATABASE_URL,
     echo=False,
     pool_size=10,
     max_overflow=5,

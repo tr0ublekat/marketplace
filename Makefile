@@ -14,7 +14,10 @@ install:
 	docker plugin install grafana/loki-docker-driver:3.3.2-amd64 --alias loki --grant-all-permissions || true
 
 test1:
-	cd test && .venv/bin/python3 main.py
+	cd test && .venv/bin/python3 main.py http://localhost:9000
+
+test1_ms:
+	cd test && .venv/bin/python3 main.py http://localhost:8001
 
 test2:
 	cd test && .venv/bin/locust --headless -u 200 -r 200 --host http://localhost:8001

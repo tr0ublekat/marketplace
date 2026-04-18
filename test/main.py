@@ -1,8 +1,10 @@
 import aiohttp
 import asyncio
 import random
+import sys
 import time
 
+host = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:9000"
 request_count = 200
 concurrency = 5  # сколько запросов одновременно
 
@@ -23,7 +25,7 @@ async def send_request(session, i):
         ],
     }
     async with session.post(
-        "http://localhost:9000/orders", json=data, headers=headers
+        f"{host}/orders", json=data, headers=headers
     ) as response:
         count += 1
         print(f"{count}/{request_count}", end="\r")
